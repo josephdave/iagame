@@ -450,6 +450,11 @@
                 teams: data.teams,
                 timeRemaining: data.timeRemaining
             };
+            
+            // Hide winner announcement when new game starts
+            const winnerAnnouncement = document.getElementById('winner-announcement');
+            winnerAnnouncement.classList.add('hidden');
+            
             updateDashboard();
         });
         
@@ -489,6 +494,11 @@
         
         socket.on('gameStateReset', () => {
             gameState = { status: 'waiting' };
+            
+            // Hide winner announcement when game state resets
+            const winnerAnnouncement = document.getElementById('winner-announcement');
+            winnerAnnouncement.classList.add('hidden');
+            
             updateDashboard();
         });
     </script>
