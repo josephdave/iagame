@@ -808,10 +808,19 @@
             setGameState(gameState);
             
             const winnerInfo = document.getElementById('winner-info');
-            winnerInfo.innerHTML = `
-                <h3>🏆 Ganador: Equipo ${data.winner.name} 🏆</h3>
-                <p>Items recolectados: ${data.winner.items.length}</p>
-            `;
+            
+            if (data.winner.name === 'Empate') {
+                winnerInfo.innerHTML = `
+                    <h3>🤝 ¡Juego Empatado! 🤝</h3>
+                    <p>Items recolectados: ${data.winner.items.length} cada equipo</p>
+                    <p>Equipos empatados: ${data.winner.players.join(', ')}</p>
+                `;
+            } else {
+                winnerInfo.innerHTML = `
+                    <h3>🏆 Ganador: Equipo ${data.winner.name} 🏆</h3>
+                    <p>Items recolectados: ${data.winner.items.length}</p>
+                `;
+            }
             
             if (data.finalScores) {
                 const scoresDiv = document.getElementById('final-scores');

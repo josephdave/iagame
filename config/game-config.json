@@ -4,12 +4,12 @@
     "max_teams": 2,
     "items_per_team": 5,
     "penalty_items_count": 3,
-    "webhook_url": "https://example.com/webhook",
+    "webhook_url": "https://n8n.toscanagestion.co/webhook/564a7e7e-a4cd-4973-9023-e9f007733e23",
     "qr_codes": [
-      "QR001", "QR002", "QR003", "QR004", "QR005",
-      "QR006", "QR007", "QR008", "QR009", "QR010",
-      "QR011", "QR012", "QR013", "QR014", "QR015"
-    ],
+  "K8R2WZ", "1M3D7X", "Q9L5NA", "V2Z6PU", "T4Y8JB",
+  "W7C1QK", "Z3F9XE", "B5M2HD", "L8T4RA", "Y6P9WN",
+  "J1K7CV", "X2M5LG", "D3Q8TZ", "N9R1SB", "H6V4KY"
+],
     "team_colors": [
       { "name": "Azul", "color": "#3498db" },
       { "name": "Rojo", "color": "#e74c3c" },

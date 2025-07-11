@@ -468,12 +468,24 @@
             gameState.status = 'finished';
             
             const winnerAnnouncement = document.getElementById('winner-announcement');
-            winnerAnnouncement.innerHTML = `
-                <h2>🏆 ¡Juego Terminado! 🏆</h2>
-                <h3>Ganador: Equipo ${data.winner.name}</h3>
-                <p>Items recolectados: ${data.winner.items.length}</p>
-                ${data.reason === 'time_up' ? '<p>Tiempo agotado</p>' : '<p>Completó todos los items</p>'}
-            `;
+            
+            if (data.winner.name === 'Empate') {
+                winnerAnnouncement.innerHTML = `
+                    <h2>🤝 ¡Juego Terminado! 🤝</h2>
+                    <h3>¡Juego Empatado!</h3>
+                    <p>Items recolectados: ${data.winner.items.length} cada equipo</p>
+                    <p>Equipos empatados: ${data.winner.players.join(', ')}</p>
+                    ${data.reason === 'time_up' ? '<p>Tiempo agotado</p>' : '<p>Empate técnico</p>'}
+                `;
+            } else {
+                winnerAnnouncement.innerHTML = `
+                    <h2>🏆 ¡Juego Terminado! 🏆</h2>
+                    <h3>Ganador: Equipo ${data.winner.name}</h3>
+                    <p>Items recolectados: ${data.winner.items.length}</p>
+                    ${data.reason === 'time_up' ? '<p>Tiempo agotado</p>' : '<p>Completó todos los items</p>'}
+                `;
+            }
+            
             winnerAnnouncement.classList.remove('hidden');
             
             updateDashboard();

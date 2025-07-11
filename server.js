@@ -134,6 +134,10 @@ app.post('/api/set-next-game', (req, res) => {
   const { datetime } = req.body;
   gameState.nextGameTime = new Date(datetime);
   gameState.status = 'waiting';
+
+  const minutesLeft = Math.ceil((gameState.nextGameTime - Date.now()) / 60000);
+  const message = `Se ha programado un nuevo juego, confirma tu participación. Faltan ${minutesLeft} minutos para iniciar.`;
+   sendWebhookNotification(message);
   
   io.emit('gameScheduled', {
     nextGameTime: gameState.nextGameTime,
@@ -434,12 +438,29 @@ async function endGame() {
   let winMessage = '¡El juego ha terminado!';
   
   if (gameState.teams && gameState.teams.length > 0) {
-    // Find winner (team with most items)
-    winner = gameState.teams.reduce((best, team) => 
-      team.items.length > best.items.length ? team : best
-    );
+    // Find maximum number of items
+    const maxItems = Math.max(...gameState.teams.map(team => team.items.length));
     
-    winMessage = `¡El juego ha terminado! El equipo ${winner.name} ha ganado con ${winner.items.length} items recolectados`;
+    // Find all teams with maximum items
+    const topTeams = gameState.teams.filter(team => team.items.length === maxItems);
+    
+    if (topTeams.length > 1) {
+      // It's a tie
+      winner = {
+        id: -1,
+        name: 'Empate',
+        color: '#ffd700',
+        items: new Array(maxItems).fill({}),
+        players: topTeams.flatMap(team => team.players.map(p => p.name))
+      };
+      
+      const teamNames = topTeams.map(team => team.name).join(' y ');
+      winMessage = `¡Juego empatado! Los equipos ${teamNames} empataron con ${maxItems} items recolectados cada uno`;
+    } else {
+      // Single winner
+      winner = topTeams[0];
+      winMessage = `¡El juego ha terminado! El equipo ${winner.name} ha ganado con ${winner.items.length} items recolectados`;
+    }
   } else {
     winMessage = '¡El juego ha terminado! No había equipos activos.';
     // Create a dummy winner for the client
