@@ -357,20 +357,20 @@
         
         // Handle image loading errors
         document.getElementById('item-image').onerror = function() {
-            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjY2NjIi8+CjwvU3ZnPgo=';
+            this.src = 'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mO89x8AAsEB3+IGkhwAAAAASUVORK5CYII=';
         };
         
         // Auto-close tab after successful scan (optional)
         let autoCloseTimer;
-        socket.on('itemScanned', (data) => {
-            if (data.isPenalty || data.isRequired) {
-                autoCloseTimer = setTimeout(() => {
-                    if (confirm('¿Quieres cerrar esta pestaña y volver al juego principal?')) {
-                        window.close();
-                    }
-                }, 3000);
-            }
-        });
+        // socket.on('itemScanned', (data) => {
+        //     if (data.isPenalty || data.isRequired) {
+        //         autoCloseTimer = setTimeout(() => {
+        //             if (confirm('¿Quieres cerrar esta pestaña y volver al juego principal?')) {
+        //                 window.close();
+        //             }
+        //         }, 3000);
+        //     }
+        // });
         
         // Cancel auto-close if user interacts
         document.addEventListener('click', () => {
