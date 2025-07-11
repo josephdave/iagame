@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controles - Un Asado con la IA</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #000000;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .nav-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 10px;
+            background: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .nav-button:hover {
+            background: #45a049;
+        }
+        
+        .nav-button.secondary {
+            background: #2196f3;
+        }
+        
+        .nav-button.secondary:hover {
+            background: #1976d2;
+        }
+        
+        .controls-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .controls-section h2 {
+            margin-top: 0;
+            color: #ffeb3b;
+            border-bottom: 2px solid #ffeb3b;
+            padding-bottom: 10px;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            min-width: 150px;
+        }
+        
+        .control-group input {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .control-group button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .btn-primary {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #ff5252;
+        }
+        
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        
+        .btn-info {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #1976d2;
+        }
+        
+        .game-status {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-waiting {
+            background: #ffeb3b;
+        }
+        
+        .status-active {
+            background: #4caf50;
+        }
+        
+        .status-finished {
+            background: #f44336;
+        }
+        
+        .players-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .players-count {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+        
+        .players-list {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .player-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .qr-controls {
+            text-align: center;
+        }
+        
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .qr-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .qr-code {
+            width: 120px;
+            height: 120px;
+            margin: 10px auto;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .qr-code img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .success-message, .error-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+        }
+        
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+        }
+        
+        @media (max-width: 768px) {
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group label {
+                min-width: auto;
+            }
+            
+            .navigation {
+                margin-bottom: 20px;
+            }
+            
+            .nav-button {
+                display: block;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Controles del Juego 🎮</h1>
+        
+        <div class="navigation">
+            <a href="/dashboard" class="nav-button secondary">📊 Dashboard</a>
+            <a href="/" class="nav-button secondary">👥 Página Principal</a>
+        </div>
+        
+        <div class="game-status">
+            <div id="game-status-text">
+                <span id="status-indicator" class="status-indicator status-waiting"></span>
+                Estado: Cargando...
+            </div>
+        </div>
+        
+        <!-- Players Management -->
+        <div class="controls-section">
+            <h2>👥 Gestión de Jugadores</h2>
+            <div class="players-info">
+                <div class="players-count">Jugadores registrados: <span id="players-count">0</span></div>
+                <div id="players-list" class="players-list"></div>
+            </div>
+            <div class="control-group">
+                <button onclick="clearPlayersList()" class="btn-danger">🗑️ Limpiar Lista de Jugadores</button>
+                <button onclick="refreshPlayersList()" class="btn-info">🔄 Actualizar Lista</button>
+            </div>
+        </div>
+        
+        <!-- Game Scheduling -->
+        <div class="controls-section">
+            <h2>⏰ Programación del Juego</h2>
+            <div class="control-group">
+                <label for="game-time">Próximo Juego:</label>
+                <input type="datetime-local" id="game-time">
+                <button onclick="scheduleGame()" class="btn-primary">📅 Programar Juego</button>
+            </div>
+        </div>
+        
+        <!-- Game Control -->
+        <div class="controls-section">
+            <h2>🎮 Control del Juego</h2>
+            <div class="control-group">
+                <button onclick="startGameNow()" class="btn-success">▶️ Iniciar Juego Ahora</button>
+                <button onclick="endGame()" class="btn-warning">⏹️ Terminar Juego</button>
+                <button onclick="resetGame()" class="btn-danger">🔄 Reiniciar Juego</button>
+            </div>
+        </div>
+        
+        <!-- QR Code Management -->
+        <div class="controls-section">
+            <h2>📱 Códigos QR</h2>
+            <div class="qr-controls">
+                <div class="control-group">
+                    <button onclick="generateQRCodes()" class="btn-success">🔄 Generar Códigos QR</button>
+                    <button onclick="toggleQRCodes()" class="btn-info">👁️ Mostrar/Ocultar QR</button>
+                    <button onclick="downloadQRCodes()" class="btn-primary">📥 Descargar QR</button>
+                </div>
+                <div id="qr-generator" class="hidden">
+                    <h3>Códigos QR para Escanear</h3>
+                    <div id="qr-grid" class="qr-grid"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Messages -->
+        <div id="success-message" class="success-message hidden"></div>
+        <div id="error-message" class="error-message hidden"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let gameState = null;
+        let players = new Map();
+        
+        // Initialize
+        window.onload = function() {
+            loadGameState();
+            loadPlayers();
+        };
+        
+        function loadGameState() {
+            fetch('/api/game-state')
+                .then(response => response.json())
+                .then(data => {
+                    gameState = data;
+                    updateGameStatus();
+                })
+                .catch(error => {
+                    console.error('Error loading game state:', error);
+                    showError('Error al cargar el estado del juego');
+                });
+        }
+        
+        function loadPlayers() {
+            fetch('/api/players')
+                .then(response => response.json())
+                .then(data => {
+                    players = new Map(data.map(player => [player.id, player]));
+                    updatePlayersList();
+                })
+                .catch(error => {
+                    console.error('Error loading players:', error);
+                });
+        }
+        
+        function updateGameStatus() {
+            const statusElement = document.getElementById('game-status-text');
+            const statusIndicator = document.getElementById('status-indicator');
+            
+            if (!gameState) return;
+            
+            statusIndicator.className = 'status-indicator';
+            
+            switch(gameState.status) {
+                case 'waiting':
+                    statusElement.innerHTML = '<span id="status-indicator" class="status-indicator status-waiting"></span>Estado: Esperando próximo juego';
+                    break;
+                case 'active':
+                    statusElement.innerHTML = '<span id="status-indicator" class="status-indicator status-active"></span>Estado: Juego en progreso';
+                    break;
+                case 'finished':
+                    statusElement.innerHTML = '<span id="status-indicator" class="status-indicator status-finished"></span>Estado: Juego terminado';
+                    break;
+                default:
+                    statusElement.innerHTML = '<span id="status-indicator" class="status-indicator status-waiting"></span>Estado: Desconocido';
+            }
+        }
+        
+        function updatePlayersList() {
+            const countElement = document.getElementById('players-count');
+            const listElement = document.getElementById('players-list');
+            
+            countElement.textContent = players.size;
+            listElement.innerHTML = '';
+            
+            if (players.size === 0) {
+                listElement.innerHTML = '<div class="player-item">No hay jugadores registrados</div>';
+                return;
+            }
+            
+            players.forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player-item';
+                playerDiv.textContent = player.name;
+                if (player.teamId !== null) {
+                    playerDiv.textContent += ` (Equipo ${player.teamId})`;
+                }
+                listElement.appendChild(playerDiv);
+            });
+        }
+        
+        function scheduleGame() {
+            const gameTime = document.getElementById('game-time').value;
+            if (!gameTime) {
+                showError('Por favor selecciona una fecha y hora para el juego');
+                return;
+            }
+            
+            fetch('/api/set-next-game', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    datetime: gameTime
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Juego programado correctamente');
+                    loadGameState();
+                } else {
+                    showError('Error al programar el juego');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Error al programar el juego');
+            });
+        }
+        
+        function startGameNow() {
+            if (players.size < 2) {
+                showError('Se necesitan al menos 2 jugadores para iniciar el juego');
+                return;
+            }
+            
+            fetch('/api/start-game-now', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Juego iniciado correctamente');
+                    loadGameState();
+                } else {
+                    showError(data.message || 'Error al iniciar el juego');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Error al iniciar el juego');
+            });
+        }
+        
+        function endGame() {
+            if (gameState.status !== 'active') {
+                showError('No hay ningún juego activo para terminar');
+                return;
+            }
+            
+            if (confirm('¿Estás seguro de que quieres terminar el juego actual?')) {
+                fetch('/api/end-game', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('Juego terminado correctamente');
+                        loadGameState();
+                    } else {
+                        showError('Error al terminar el juego');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Error al terminar el juego');
+                });
+            }
+        }
+        
+        function resetGame() {
+            if (confirm('¿Estás seguro de que quieres reiniciar completamente el juego? Esto eliminará el estado actual.')) {
+                fetch('/api/reset-game', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('Juego reiniciado correctamente');
+                        loadGameState();
+                    } else {
+                        showError('Error al reiniciar el juego');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Error al reiniciar el juego');
+                });
+            }
+        }
+        
+        function clearPlayersList() {
+            if (gameState.status === 'active') {
+                showError('No se puede limpiar la lista de jugadores durante un juego activo');
+                return;
+            }
+            
+            if (confirm('¿Estás seguro de que quieres eliminar todos los jugadores registrados?')) {
+                fetch('/api/clear-players', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('Lista de jugadores limpiada correctamente');
+                        loadPlayers();
+                    } else {
+                        showError('Error al limpiar la lista de jugadores');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Error al limpiar la lista de jugadores');
+                });
+            }
+        }
+        
+        function refreshPlayersList() {
+            loadPlayers();
+            showSuccess('Lista de jugadores actualizada');
+        }
+        
+        function generateQRCodes() {
+            const qrCodes = [
+                'QR001', 'QR002', 'QR003', 'QR004', 'QR005',
+                'QR006', 'QR007', 'QR008', 'QR009', 'QR010',
+                'QR011', 'QR012', 'QR013', 'QR014', 'QR015'
+            ];
+            
+            const qrGrid = document.getElementById('qr-grid');
+            qrGrid.innerHTML = '';
+            
+            qrCodes.forEach(qrId => {
+                fetch(`/api/generate-qr/${qrId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const qrItem = document.createElement('div');
+                        qrItem.className = 'qr-item';
+                        qrItem.innerHTML = `
+                            <h4>${qrId}</h4>
+                            <div class="qr-code">
+                                <img src="${data.qrCode}" alt="QR Code ${qrId}">
+                            </div>
+                            <small>${data.url}</small>
+                            <br>
+                            <button onclick="window.open('${data.url}', '_blank')" class="btn-info" style="margin-top: 10px; padding: 5px 10px; font-size: 12px;">
+                                🔗 Abrir
+                            </button>
+                        `;
+                        qrGrid.appendChild(qrItem);
+                    })
+                    .catch(error => {
+                        console.error('Error generating QR code:', error);
+                    });
+            });
+            
+            showSuccess('Códigos QR generados correctamente');
+        }
+        
+        function toggleQRCodes() {
+            const qrGenerator = document.getElementById('qr-generator');
+            qrGenerator.classList.toggle('hidden');
+        }
+        
+        function downloadQRCodes() {
+            showError('Función de descarga no implementada aún');
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // Socket event handlers
+        socket.on('gameScheduled', (data) => {
+            loadGameState();
+        });
+        
+        socket.on('gameStarted', (data) => {
+            loadGameState();
+            showSuccess('¡El juego ha comenzado!');
+        });
+        
+        socket.on('gameFinished', (data) => {
+            loadGameState();
+            showSuccess(`¡El juego ha terminado! Ganador: Equipo ${data.winner.name}`);
+        });
+        
+        socket.on('playerRegistered', (data) => {
+            loadPlayers();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+{
+  "items": [
+    {
+      "nombre": "Papa",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/papa.png"
+    },
+    {
+      "nombre": "Tomate",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/tomate.png"
+    },
+    {
+      "nombre": "Cebolla",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/cebolla.png"
+    },
+    {
+      "nombre": "Pimenton",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/pimenton.png"
+    },
+    {
+      "nombre": "Carne",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/carne.png"
+    },
+    {
+      "nombre": "Chorizo",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/chorizo.png"
+    },
+    {
+      "nombre": "Morcilla",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/morcilla.png"
+    },
+    {
+      "nombre": "Pan",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/pan.png"
+    },
+    {
+      "nombre": "Sal",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/sal.png"
+    },
+    {
+      "nombre": "Aceite",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/aceite.png"
+    },
+    {
+      "nombre": "Cerveza",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/cerveza.png"
+    },
+    {
+      "nombre": "Carbón",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/carbon.png"
+    },
+    {
+      "nombre": "Parrilla",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/parrilla.png"
+    },
+    {
+      "nombre": "Cuchillo",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/cuchillo.png"
+    }
+  ],
+  "penalty_items": [
+    {
+      "nombre": "Lluvia",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/lluvia.png"
+    },
+    {
+      "nombre": "Humo",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/humo.png"
+    },
+    {
+      "nombre": "Quemadura",
+      "imagen": "https://toscanaapp.s3.us-west-2.amazonaws.com/files/iconos/quemadura.png"
+    }
+  ]
+}

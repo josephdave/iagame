@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Un Asado con la IA</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #000000;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #ff5252;
+        }
+        .game-info {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .countdown {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin: 20px 0;
+        }
+        .team-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .team-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .items-list {
+            margin-top: 15px;
+        }
+        .item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .item.collected {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        .time-remaining {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffeb3b;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .scan-result {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .scan-result.penalty {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        .scan-result.success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        .hidden {
+            display: none;
+        }
+        .error {
+            color: #ff5252;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Un Asado con la IA</h1>
+        
+        <div id="registration-form" class="hidden">
+            <div class="form-group">
+                <label for="player-name">Ingresa tu nombre:</label>
+                <input type="text" id="player-name" placeholder="Tu nombre" required>
+            </div>
+            <button onclick="registerPlayer()">Registrarme</button>
+        </div>
+        
+        <div id="waiting-screen" class="hidden">
+            <div class="game-info">
+                <h2>¡Listo para jugar!</h2>
+                <p id="waiting-message">Esperando el próximo juego...</p>
+                <div id="countdown" class="countdown"></div>
+            </div>
+        </div>
+        
+        <div id="confirmation-screen" class="hidden">
+            <div class="game-info">
+                <h2>🎮 ¿Participas en este juego?</h2>
+                <p>El juego está a punto de comenzar. Confirma tu participación.</p>
+                <div id="confirmation-countdown" class="countdown"></div>
+                <div style="margin-top: 30px;">
+                    <button onclick="confirmParticipation()" style="padding: 15px 30px; background: #4caf50; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin: 10px;">
+                        ✅ ¡SÍ, QUIERO PARTICIPAR!
+                    </button>
+                    <br>
+                    <button onclick="declineParticipation()" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin: 10px;">
+                        ❌ No participar
+                    </button>
+                </div>
+                <div id="confirmation-status" style="margin-top: 20px; font-weight: bold;"></div>
+            </div>
+        </div>
+        
+        <div id="game-screen" class="hidden">
+            <div id="team-info" class="team-info">
+                <h3>Tu Equipo</h3>
+                <div id="team-details"></div>
+            </div>
+            
+            <div id="time-remaining" class="time-remaining"></div>
+            
+            <div id="required-items" class="items-list">
+                <h4>Items a Recolectar:</h4>
+            </div>
+            
+            <div id="collected-items" class="items-list">
+                <h4>Items Recolectados:</h4>
+            </div>
+            
+            <div id="scan-result" class="scan-result hidden"></div>
+        </div>
+        
+        <div id="finished-screen" class="hidden">
+            <div class="game-info">
+                <h2>¡Juego Terminado!</h2>
+                <div id="winner-info"></div>
+                <div id="final-scores"></div>
+             
+            </div>
+        </div>
+        
+        <div id="error-message" class="error hidden"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let playerId = getFromStorage('playerId');
+        let playerName = getFromStorage('playerName');
+        let gameState = null;
+        let currentTeam = null;
+        
+    
+        
+        async function validatePlayerOnServer() {
+            try {
+                showWaitingScreen();
+                
+                // Show validation status
+                const waitingMessage = document.getElementById('waiting-message');
+                waitingMessage.textContent = 'Validando jugador...';
+                waitingMessage.style.color = '#ffeb3b';
+                
+                console.log('Validating player ID:', playerId);
+                
+                const response = await fetch(`/api/validate-player/${playerId}`);
+                const data = await response.json();
+                
+                if (data.valid) {
+                    console.log('Player validation successful, attempting reconnection...');
+                    waitingMessage.textContent = 'Reconectando...';
+                    
+                    // Set a timeout for reconnection
+                    const reconnectTimeout = setTimeout(() => {
+                        console.log('Reconnection timeout - server might have restarted');
+                        forceReregistration('reconnection_timeout');
+                    }, 5000);
+                    
+                    // Clear timeout if we get a successful response
+                    socket.on('playerReconnected', () => {
+                        clearTimeout(reconnectTimeout);
+                        waitingMessage.textContent = 'Esperando el próximo juego...';
+                        waitingMessage.style.color = 'white';
+                    });
+                    
+                    socket.on('playerNotFound', () => {
+                        clearTimeout(reconnectTimeout);
+                    });
+                    
+                    socket.emit('reconnectPlayer', { playerId, playerName });
+                } else {
+                    console.log('Player validation failed:', data.message);
+                    forceReregistration('player_not_found_on_server');
+                }
+            } catch (error) {
+                console.error('Error validating player:', error);
+                // If validation fails due to network error, try reconnecting anyway
+                console.log('Network error during validation, attempting reconnection...');
+                
+                const waitingMessage = document.getElementById('waiting-message');
+                waitingMessage.textContent = 'Reconectando...';
+                waitingMessage.style.color = '#ffeb3b';
+                
+                const reconnectTimeout = setTimeout(() => {
+                    console.log('Reconnection timeout after network error');
+                    forceReregistration('network_error');
+                }, 5000);
+                
+                socket.on('playerReconnected', () => {
+                    clearTimeout(reconnectTimeout);
+                    waitingMessage.textContent = 'Esperando el próximo juego...';
+                    waitingMessage.style.color = 'white';
+                });
+                
+                socket.on('playerNotFound', () => {
+                    clearTimeout(reconnectTimeout);
+                });
+                
+                socket.emit('reconnectPlayer', { playerId, playerName });
+            }
+        }
+        
+        function getFromStorage(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (error) {
+                console.error('Error reading from localStorage:', error);
+                return null;
+            }
+        }
+        
+        function setToStorage(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                // Also save to sessionStorage for backup
+                sessionStorage.setItem(key, value);
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+            }
+        }
+        
+        function getGameState() {
+            try {
+                const stored = localStorage.getItem('gameState');
+                return stored ? JSON.parse(stored) : null;
+            } catch (error) {
+                console.error('Error reading game state:', error);
+                return null;
+            }
+        }
+        
+        function setGameState(state) {
+            try {
+                localStorage.setItem('gameState', JSON.stringify(state));
+            } catch (error) {
+                console.error('Error saving game state:', error);
+            }
+        }
+        
+        function clearPlayerData() {
+            try {
+                localStorage.removeItem('playerId');
+                localStorage.removeItem('playerName');
+                localStorage.removeItem('gameState');
+                sessionStorage.removeItem('playerId');
+                sessionStorage.removeItem('playerName');
+                sessionStorage.removeItem('gameState');
+                console.log('Player data cleared from storage');
+            } catch (error) {
+                console.error('Error clearing player data:', error);
+            }
+        }
+        
+        function forceReregistration(reason = 'unknown') {
+            console.log('Forcing re-registration due to:', reason);
+            clearPlayerData();
+            playerId = null;
+            playerName = null;
+            gameState = null;
+            currentTeam = null;
+            showRegistrationForm();
+            
+            // Show specific message based on reason
+            let errorMessage;
+            switch (reason) {
+                case 'player_not_found_on_server':
+                    errorMessage = 'Tu registro no se encontró en el servidor. Por favor regístrate nuevamente.';
+                    break;
+                case 'reconnection_timeout':
+                    errorMessage = 'No se pudo reconectar al servidor. Por favor regístrate nuevamente.';
+                    break;
+                case 'network_error':
+                    errorMessage = 'Error de conexión. Por favor regístrate nuevamente.';
+                    break;
+                case 'server_restart_or_expired':
+                    errorMessage = 'El servidor se reinició. Por favor regístrate nuevamente.';
+                    break;
+                default:
+                    errorMessage = 'Tu sesión ha expirado. Por favor regístrate nuevamente.';
+            }
+            
+            showError(errorMessage);
+        }
+        
+        function handleStorageChange(event) {
+            // Handle changes from other tabs
+            if (event.key === 'gameState') {
+                const newGameState = event.newValue ? JSON.parse(event.newValue) : null;
+                if (newGameState) {
+                    gameState = newGameState;
+                    updateUIFromGameState();
+                }
+            }
+        }
+        
+        function updateUIFromGameState() {
+            if (!gameState) return;
+            
+            console.log('Updating UI from game state:', gameState.status);
+            
+            switch (gameState.status) {
+                case 'waiting':
+                    if (playerId && playerName) {
+                        showWaitingScreen();
+                        if (gameState.nextGameTime) {
+                            updateCountdown(gameState.nextGameTime);
+                        }
+                    }
+                    break;
+                case 'active':
+                    console.log('Handling active game state, currentTeam:', currentTeam);
+                    console.log('Available teams:', gameState.teams);
+                    
+                    if (gameState.currentTeam) {
+                        currentTeam = gameState.currentTeam;
+                        console.log('Using stored currentTeam:', currentTeam);
+                    } else if (gameState.teams && playerName) {
+                        // Try to find current team from teams list
+                        currentTeam = gameState.teams.find(team => 
+                            team.players.includes(playerName)
+                        );
+                        if (currentTeam) {
+                            console.log('Found team for player', playerName, ':', currentTeam);
+                            gameState.currentTeam = currentTeam;
+                            setGameState(gameState);
+                        } else {
+                            console.log('No team found for player:', playerName);
+                        }
+                    }
+                    
+                    if (currentTeam) {
+                        showGameScreen();
+                        updateTeamInfo(currentTeam);
+                        if (gameState.timeRemaining) {
+                            document.getElementById('time-remaining').textContent = 
+                                `Tiempo restante: ${formatTime(gameState.timeRemaining)}`;
+                        }
+                    } else {
+                        console.log('No current team available, staying in waiting screen');
+                        showWaitingScreen();
+                        const waitingMessage = document.getElementById('waiting-message');
+                        waitingMessage.textContent = 'Esperando asignación de equipo...';
+                        waitingMessage.style.color = '#ffeb3b';
+                    }
+                    break;
+                case 'finished':
+                    showFinishedScreen();
+                    break;
+            }
+        }
+        
+        function showRegistrationForm() {
+            document.getElementById('registration-form').classList.remove('hidden');
+            document.getElementById('waiting-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('finished-screen').classList.add('hidden');
+        }
+        
+        function showWaitingScreen() {
+            document.getElementById('registration-form').classList.add('hidden');
+            document.getElementById('waiting-screen').classList.remove('hidden');
+            document.getElementById('confirmation-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('finished-screen').classList.add('hidden');
+        }
+        
+        function showConfirmationScreen() {
+            document.getElementById('registration-form').classList.add('hidden');
+            document.getElementById('waiting-screen').classList.add('hidden');
+            document.getElementById('confirmation-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('finished-screen').classList.add('hidden');
+        }
+        
+        function showGameScreen() {
+            document.getElementById('registration-form').classList.add('hidden');
+            document.getElementById('waiting-screen').classList.add('hidden');
+            document.getElementById('confirmation-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('finished-screen').classList.add('hidden');
+        }
+        
+        function showFinishedScreen() {
+            document.getElementById('registration-form').classList.add('hidden');
+            document.getElementById('waiting-screen').classList.add('hidden');
+            document.getElementById('confirmation-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('finished-screen').classList.remove('hidden');
+        }
+        
+        function registerPlayer() {
+            const name = document.getElementById('player-name').value.trim();
+            if (!name) {
+                showError('Por favor ingresa tu nombre');
+                return;
+            }
+            
+            socket.emit('registerPlayer', { name });
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function updateCountdown(targetTime) {
+            const countdownElement = document.getElementById('countdown');
+            
+            function update() {
+                const now = new Date().getTime();
+                const target = new Date(targetTime).getTime();
+                const distance = target - now;
+                
+                if (distance > 0) {
+                    const hours = Math.floor(distance / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    
+                    countdownElement.innerHTML = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    countdownElement.innerHTML = 'Comenzando...';
+                }
+            }
+            
+            update();
+            const interval = setInterval(update, 1000);
+            
+            return interval;
+        }
+        
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function startConfirmationCountdown(targetTime) {
+            const countdownElement = document.getElementById('confirmation-countdown');
+            
+            function update() {
+                const now = new Date().getTime();
+                const target = new Date(targetTime).getTime();
+                const distance = target - now;
+                
+                if (distance > 0) {
+                    const minutes = Math.floor(distance / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    
+                    countdownElement.innerHTML = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    countdownElement.innerHTML = 'Iniciando...';
+                    clearInterval(confirmationInterval);
+                }
+            }
+            
+            update();
+            const confirmationInterval = setInterval(update, 1000);
+            
+            return confirmationInterval;
+        }
+        
+        function confirmParticipation() {
+            console.log('Player confirmed participation');
+            socket.emit('confirmParticipation', { playerId, playerName });
+            
+            const statusDiv = document.getElementById('confirmation-status');
+            statusDiv.innerHTML = '<span style="color: #4caf50;">✅ Participación confirmada</span>';
+            statusDiv.style.display = 'block';
+            
+            // Disable buttons
+            const buttons = document.querySelectorAll('#confirmation-screen button');
+            buttons.forEach(btn => btn.disabled = true);
+        }
+        
+        function declineParticipation() {
+            console.log('Player declined participation');
+            socket.emit('declineParticipation', { playerId, playerName });
+            
+            const statusDiv = document.getElementById('confirmation-status');
+            statusDiv.innerHTML = '<span style="color: #f44336;">❌ No participarás en este juego</span>';
+            statusDiv.style.display = 'block';
+            
+            // Disable buttons
+            const buttons = document.querySelectorAll('#confirmation-screen button');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Return to waiting screen after a delay
+            setTimeout(() => {
+                showWaitingScreen();
+                const waitingMessage = document.getElementById('waiting-message');
+                waitingMessage.textContent = 'Esperando el próximo juego...';
+                waitingMessage.style.color = 'white';
+            }, 2000);
+        }
+        
+        function updateTeamInfo(team) {
+            console.log('Updating team info for team:', team.name, 'with', team.items.length, 'items');
+            console.log('Collected items:', team.items.map(item => item.nombre));
+            
+            const teamDetails = document.getElementById('team-details');
+            teamDetails.innerHTML = `
+                <div>
+                    <span class="team-color" style="background-color: ${team.color}"></span>
+                    <strong>Equipo ${team.name}</strong>
+                </div>
+                <div>Jugadores: ${team.players.join(', ')}</div>
+            `;
+            
+            const requiredItems = document.getElementById('required-items');
+            requiredItems.innerHTML = '<h4>Items a Recolectar:</h4>';
+            team.requiredItems.forEach(item => {
+                const isCollected = team.items.some(collected => collected.nombre === item.nombre);
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `item ${isCollected ? 'collected' : ''}`;
+                itemDiv.innerHTML = `
+                    <img src="${item.imagen}" alt="${item.nombre}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjY2NjIi8+CjwvU3ZnPgo='">
+                    <span>${item.nombre}</span>
+                    ${isCollected ? '<span style="color: #4caf50; margin-left: auto;">✓</span>' : ''}
+                `;
+                requiredItems.appendChild(itemDiv);
+            });
+            
+            const collectedItems = document.getElementById('collected-items');
+            collectedItems.innerHTML = '<h4>Items Recolectados:</h4>';
+            if (team.items.length === 0) {
+                collectedItems.innerHTML += '<p>Ningún item recolectado aún</p>';
+            } else {
+                team.items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'item collected';
+                    itemDiv.innerHTML = `
+                        <img src="${item.imagen}" alt="${item.nombre}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjY2NjIi8+CjwvU3ZnPgo='">
+                        <span>${item.nombre}</span>
+                        <span style="color: #4caf50; margin-left: auto;">✓</span>
+                    `;
+                    collectedItems.appendChild(itemDiv);
+                });
+            }
+        }
+        
+        // Socket event handlers
+        socket.on('playerRegistered', (data) => {
+            playerId = data.playerId;
+            playerName = data.name;
+            gameState = data.gameState;
+            
+            setToStorage('playerId', playerId);
+            setToStorage('playerName', playerName);
+            setGameState(gameState);
+            
+            // Check if requires immediate confirmation
+            if (data.requiresConfirmation && data.confirmationDeadline) {
+                showConfirmationScreen();
+                startConfirmationCountdown(data.confirmationDeadline);
+            } else {
+                showWaitingScreen();
+                if (gameState.nextGameTime) {
+                    updateCountdown(gameState.nextGameTime);
+                }
+            }
+        });
+        
+        socket.on('playerReconnected', (data) => {
+            console.log('Player reconnected successfully:', data);
+            playerId = data.playerId;
+            playerName = data.name;
+            gameState = data.gameState;
+            
+            setToStorage('playerId', playerId);
+            setToStorage('playerName', playerName);
+            setGameState(gameState);
+            
+            // Find current team from reconnected game state
+            if (gameState.status === 'active' && gameState.teams) {
+                currentTeam = gameState.teams.find(team => 
+                    team.players.includes(playerName)
+                );
+                if (currentTeam) {
+                    console.log('Found current team after reconnection:', currentTeam);
+                    gameState.currentTeam = currentTeam;
+                    setGameState(gameState);
+                }
+            }
+            
+            // Check if requires immediate confirmation
+            if (data.requiresConfirmation && data.confirmationDeadline) {
+                showConfirmationScreen();
+                startConfirmationCountdown(data.confirmationDeadline);
+            } else {
+                updateUIFromGameState();
+                if (gameState.nextGameTime) {
+                    updateCountdown(gameState.nextGameTime);
+                }
+            }
+        });
+        
+        socket.on('gameScheduled', (data) => {
+            updateCountdown(data.nextGameTime);
+        });
+        
+        socket.on('gameStarted', (data) => {
+            console.log('Game started event received:', data);
+            
+            gameState = {
+                status: 'active',
+                teams: data.teams,
+                timeRemaining: data.timeRemaining,
+                currentTeam: data.teams.find(team => 
+                    team.players.includes(playerName)
+                )
+            };
+            
+            currentTeam = gameState.currentTeam;
+            console.log('Current team assigned on game start:', currentTeam);
+            
+            setGameState(gameState);
+            
+            if (currentTeam) {
+                showGameScreen();
+                updateTeamInfo(currentTeam);
+                document.getElementById('time-remaining').textContent = 
+                    `Tiempo restante: ${formatTime(data.timeRemaining)}`;
+            } else {
+                console.log('No team found for player on game start:', playerName);
+                showWaitingScreen();
+                const waitingMessage = document.getElementById('waiting-message');
+                waitingMessage.textContent = 'Error: No se pudo asignar equipo';
+                waitingMessage.style.color = '#ff5252';
+            }
+        });
+        
+        socket.on('gameStateUpdate', (data) => {
+            console.log('Received gameStateUpdate:', data);
+            
+            // Update game state first
+            if (!gameState) {
+                gameState = { status: 'active' };
+            }
+            gameState.teams = data.teams;
+            gameState.timeRemaining = data.timeRemaining;
+            
+            // Find current team by player name if not set or if team changed
+            if (!currentTeam || !currentTeam.id) {
+                currentTeam = data.teams.find(team => 
+                    team.players.includes(playerName)
+                );
+                console.log('Found current team by player name:', currentTeam);
+            } else {
+                // Update existing team
+                const updatedTeam = data.teams.find(team => team.id === currentTeam.id);
+                if (updatedTeam) {
+                    console.log('Updating team info. Items before:', currentTeam.items.length, 'Items after:', updatedTeam.items.length);
+                    currentTeam = updatedTeam;
+                } else {
+                    console.log('Team not found in update data, searching by player name');
+                    currentTeam = data.teams.find(team => 
+                        team.players.includes(playerName)
+                    );
+                }
+            }
+            
+            if (currentTeam) {
+                gameState.currentTeam = currentTeam;
+                setGameState(gameState);
+                updateTeamInfo(currentTeam);
+                
+                // Make sure we're showing the game screen if game is active
+                if (gameState.status === 'active') {
+                    showGameScreen();
+                }
+            } else {
+                console.log('No current team found for player:', playerName);
+            }
+        });
+        
+        socket.on('timeUpdate', (data) => {
+            document.getElementById('time-remaining').textContent = 
+                `Tiempo restante: ${formatTime(data.timeRemaining)}`;
+        });
+        
+        socket.on('itemScanned', (data) => {
+            console.log('Item scanned event received:', data);
+            
+            const scanResult = document.getElementById('scan-result');
+            scanResult.className = `scan-result ${data.isPenalty ? 'penalty' : 'success'}`;
+            scanResult.innerHTML = `
+                <img src="${data.item.imagen}" alt="${data.item.nombre}" style="width: 60px; height: 60px; border-radius: 10px;">
+                <h3>${data.item.nombre}</h3>
+                <p>${data.message}</p>
+            `;
+            scanResult.classList.remove('hidden');
+            
+            // If item was successfully collected, update team immediately
+            if (data.isRequired && !data.isPenalty && currentTeam) {
+                console.log('Item collected successfully, updating team immediately...');
+                // Add item to current team locally for immediate feedback
+                if (!currentTeam.items.some(item => item.nombre === data.item.nombre)) {
+                    currentTeam.items.push(data.item);
+                    console.log('Added item to current team. New items count:', currentTeam.items.length);
+                    gameState.currentTeam = currentTeam;
+                    setGameState(gameState);
+                    updateTeamInfo(currentTeam);
+                } else {
+                    console.log('Item already exists in team items');
+                }
+            } else {
+                console.log('Item not added to team. Required:', data.isRequired, 'Penalty:', data.isPenalty, 'Current team:', !!currentTeam);
+            }
+            
+            setTimeout(() => {
+                scanResult.classList.add('hidden');
+            }, 5000);
+        });
+        
+        socket.on('gameFinished', (data) => {
+            gameState = {
+                status: 'finished',
+                winner: data.winner,
+                finalScores: data.finalScores,
+                reason: data.reason
+            };
+            setGameState(gameState);
+            
+            const winnerInfo = document.getElementById('winner-info');
+            winnerInfo.innerHTML = `
+                <h3>🏆 Ganador: Equipo ${data.winner.name} 🏆</h3>
+                <p>Items recolectados: ${data.winner.items.length}</p>
+            `;
+            
+            if (data.finalScores) {
+                const scoresDiv = document.getElementById('final-scores');
+                scoresDiv.innerHTML = '<h4>Resultados Finales:</h4>';
+                data.finalScores.forEach(score => {
+                    scoresDiv.innerHTML += `<p>${score.name}: ${score.items}/${score.required} items</p>`;
+                });
+            }
+            
+            showFinishedScreen();
+        });
+        
+        socket.on('error', (data) => {
+            showError(data.message);
+        });
+        
+        socket.on('playerNotFound', (data) => {
+            console.log('Player not found on server:', data);
+            forceReregistration(data.reason);
+        });
+        
+        socket.on('confirmationRequired', (data) => {
+            console.log('Confirmation required:', data);
+            showConfirmationScreen();
+            startConfirmationCountdown(data.deadline);
+        });
+        
+        socket.on('playerConfirmed', (data) => {
+            console.log('Player confirmed:', data);
+            // Update confirmation status if needed
+        });
+        
+        socket.on('playerDeclined', (data) => {
+            console.log('Player declined:', data);
+            // Update confirmation status if needed
+        });
+        
+        socket.on('gameAborted', (data) => {
+            console.log('Game aborted:', data);
+            showWaitingScreen();
+            const waitingMessage = document.getElementById('waiting-message');
+            waitingMessage.textContent = data.message;
+            waitingMessage.style.color = '#ff5252';
+        });
+        
+        socket.on('gameStateReset', () => {
+            console.log('Game state reset after game end');
+            gameState = { status: 'waiting' };
+            currentTeam = null;
+            setGameState(gameState);
+            showWaitingScreen();
+            const waitingMessage = document.getElementById('waiting-message');
+            waitingMessage.textContent = 'Esperando el próximo juego...';
+            waitingMessage.style.color = 'white';
+        });
+        
+        // Handle QR scan from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const qrId = urlParams.get('qr');
+        if (qrId && playerId) {
+            socket.emit('scanQR', { qrId });
+        }
+        
+        // Initialize from stored game state on page load
+        const storedGameState = getGameState();
+
+
+                   console.log('Page loaded, initializing game state...');
+            if (playerId && playerName) {
+                console.log('Found existing player data, validating with server...');
+                validatePlayerOnServer();
+            } else {
+                showRegistrationForm();
+            }
+            
+            // Listen for storage changes from other tabs
+            window.addEventListener('storage', handleStorageChange);
+
+        if (storedGameState) {
+            console.log('Loading stored game state:', storedGameState);
+            gameState = storedGameState;
+            if (gameState.currentTeam) {
+                currentTeam = gameState.currentTeam;
+                console.log('Restored current team from storage:', currentTeam);
+            }
+            updateUIFromGameState();
+        }
+    </script>
+</body>
+</html>

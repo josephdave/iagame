@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear QR - Un Asado con la IA</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #000000;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .scan-result {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .scan-result.penalty {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        .scan-result.success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        .scan-result.info {
+            background: rgba(33, 150, 243, 0.3);
+        }
+        .item-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            margin: 10px auto;
+            display: block;
+        }
+        .loading {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .back-button {
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .back-button:hover {
+            background: #ff5252;
+        }
+        .error {
+            color: #ff5252;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Escanear QR 🔥</h1>
+        
+        <div id="loading" class="scan-result loading">
+            <h3>Procesando...</h3>
+            <p>Validando código QR...</p>
+        </div>
+        
+        <div id="scan-result" class="scan-result" style="display: none;">
+            <img id="item-image" class="item-image" src="" alt="">
+            <h3 id="item-name"></h3>
+            <p id="scan-message"></p>
+        </div>
+        
+        <div id="error-message" class="error" style="display: none;"></div>
+        
+        <a href="/" class="back-button" onclick="syncWithMainTab()">Volver al Juego</a>
+        <button class="back-button" onclick="window.close()" style="margin-left: 10px;">Cerrar Pestaña</button>
+    </div>
+
+    <script>
+        const socket = io();
+        let playerId = getFromStorage('playerId');
+        let playerName = getFromStorage('playerName');
+        
+        function getFromStorage(key) {
+            try {
+                return localStorage.getItem(key) || sessionStorage.getItem(key);
+            } catch (error) {
+                console.error('Error reading from storage:', error);
+                return null;
+            }
+        }
+        
+        function setToStorage(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                sessionStorage.setItem(key, value);
+            } catch (error) {
+                console.error('Error saving to storage:', error);
+            }
+        }
+        
+        function getGameState() {
+            try {
+                const stored = localStorage.getItem('gameState');
+                return stored ? JSON.parse(stored) : null;
+            } catch (error) {
+                console.error('Error reading game state:', error);
+                return null;
+            }
+        }
+        
+        function setGameState(state) {
+            try {
+                localStorage.setItem('gameState', JSON.stringify(state));
+                // Notify other tabs of the change
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'gameState',
+                    newValue: JSON.stringify(state)
+                }));
+            } catch (error) {
+                console.error('Error saving game state:', error);
+            }
+        }
+        
+        function clearPlayerData() {
+            try {
+                localStorage.removeItem('playerId');
+                localStorage.removeItem('playerName');
+                localStorage.removeItem('gameState');
+                sessionStorage.removeItem('playerId');
+                sessionStorage.removeItem('playerName');
+                sessionStorage.removeItem('gameState');
+                console.log('Player data cleared from storage');
+            } catch (error) {
+                console.error('Error clearing player data:', error);
+            }
+        }
+        
+        function handlePlayerNotFound(reason = 'unknown') {
+            console.log('Player not found on server:', reason);
+            clearPlayerData();
+            
+            // Show specific message based on reason
+            let errorMessage;
+            switch (reason) {
+                case 'player_not_found_before_scan':
+                    errorMessage = 'Tu registro no se encontró en el servidor. Cerrando pestaña...';
+                    break;
+                case 'connection_timeout':
+                    errorMessage = 'No se pudo conectar al servidor. Cerrando pestaña...';
+                    break;
+                case 'server_restart_or_expired':
+                    errorMessage = 'El servidor se reinició. Cerrando pestaña...';
+                    break;
+                default:
+                    errorMessage = 'Tu sesión ha expirado. Cerrando pestaña...';
+            }
+            
+            showError(errorMessage);
+            setTimeout(() => {
+                window.close();
+                // If window.close() doesn't work (some browsers block it), redirect to main page
+                window.location.href = '/?error=session_expired';
+            }, 2000);
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('scan-result').style.display = 'none';
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-message').style.display = 'block';
+        }
+        
+        function showScanResult(data) {
+            document.getElementById('loading').style.display = 'none';
+            
+            const resultDiv = document.getElementById('scan-result');
+            const itemImage = document.getElementById('item-image');
+            const itemName = document.getElementById('item-name');
+            const scanMessage = document.getElementById('scan-message');
+            
+            itemImage.src = data.item.imagen;
+            itemImage.alt = data.item.nombre;
+            itemName.textContent = data.item.nombre;
+            scanMessage.textContent = data.message;
+            
+            if (data.isPenalty) {
+                resultDiv.className = 'scan-result penalty';
+            } else if (data.isRequired) {
+                resultDiv.className = 'scan-result success';
+            } else {
+                resultDiv.className = 'scan-result info';
+            }
+            
+            resultDiv.style.display = 'block';
+        }
+        
+        // Get QR ID from URL
+        const urlParts = window.location.pathname.split('/');
+        const qrId = urlParts[urlParts.length - 1];
+        
+        // Debug info
+        console.log('QR ID:', qrId);
+        console.log('Player ID:', playerId);
+        console.log('Player Name:', playerName);
+        
+        // Check if player is registered
+        if (!playerId) {
+            showError('No estás registrado. Por favor ve a la página principal para registrarte.');
+        } else {
+            // Validate player exists on server before proceeding
+            validatePlayerBeforeScan();
+        }
+        
+        async function validatePlayerBeforeScan() {
+            try {
+                console.log('Validating player before scan:', playerId);
+                
+                const response = await fetch(`/api/validate-player/${playerId}`);
+                const data = await response.json();
+                
+                if (!data.valid) {
+                    console.log('Player validation failed during scan:', data.message);
+                    handlePlayerNotFound('player_not_found_before_scan');
+                    return;
+                }
+                
+                console.log('Player validation successful, proceeding with scan...');
+                proceedWithScan();
+            } catch (error) {
+                console.error('Error validating player before scan:', error);
+                // If validation fails due to network error, try scanning anyway
+                console.log('Network error during validation, proceeding with scan...');
+                proceedWithScan();
+            }
+        }
+        
+        function proceedWithScan() {
+            // Set a timeout to handle cases where server doesn't respond
+            const connectionTimeout = setTimeout(() => {
+                console.log('Connection timeout - server might have restarted');
+                handlePlayerNotFound('connection_timeout');
+            }, 5000);
+            
+            // Connect to socket and emit scan event
+            socket.on('connect', () => {
+                console.log('Socket connected, attempting to reconnect player...');
+                // Reconnect player if needed
+                if (playerId && playerName) {
+                    socket.emit('reconnectPlayer', { playerId, playerName });
+                    // Wait a bit then emit scan
+                    setTimeout(() => {
+                        console.log('Emitting scanQR with:', { qrId });
+                        socket.emit('scanQR', { qrId });
+                        clearTimeout(connectionTimeout);
+                    }, 500);
+                } else {
+                    console.log('Emitting scanQR directly with:', { qrId });
+                    socket.emit('scanQR', { qrId });
+                    clearTimeout(connectionTimeout);
+                }
+            });
+            
+            // Clear timeout on successful events
+            socket.on('playerReconnected', () => {
+                clearTimeout(connectionTimeout);
+            });
+            
+            socket.on('itemScanned', () => {
+                clearTimeout(connectionTimeout);
+            });
+            
+            socket.on('playerNotFound', () => {
+                clearTimeout(connectionTimeout);
+            });
+            
+            // If already connected, emit scan event
+            if (socket.connected) {
+                console.log('Socket already connected, emitting scanQR...');
+                if (playerId && playerName) {
+                    socket.emit('reconnectPlayer', { playerId, playerName });
+                    setTimeout(() => {
+                        socket.emit('scanQR', { qrId });
+                        clearTimeout(connectionTimeout);
+                    }, 500);
+                } else {
+                    socket.emit('scanQR', { qrId });
+                    clearTimeout(connectionTimeout);
+                }
+            }
+        }
+        
+        // Socket event handlers
+        socket.on('itemScanned', (data) => {
+            showScanResult(data);
+            
+            // Update game state in storage
+            const gameState = getGameState();
+            if (gameState) {
+                gameState.lastScannedItem = data;
+                setGameState(gameState);
+            }
+        });
+        
+        socket.on('error', (data) => {
+            showError(data.message);
+        });
+        
+        socket.on('playerNotFound', (data) => {
+            console.log('Player not found on server:', data);
+            handlePlayerNotFound(data.reason);
+        });
+        
+        socket.on('gameStateUpdate', (data) => {
+            // Update stored game state
+            const gameState = getGameState();
+            if (gameState) {
+                gameState.teams = data.teams;
+                gameState.timeRemaining = data.timeRemaining;
+                setGameState(gameState);
+            }
+        });
+        
+        socket.on('gameFinished', (data) => {
+            const gameState = {
+                status: 'finished',
+                winner: data.winner,
+                finalScores: data.finalScores,
+                reason: data.reason
+            };
+            setGameState(gameState);
+        });
+        
+        // Handle image loading errors
+        document.getElementById('item-image').onerror = function() {
+            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjY2NjIi8+CjwvU3ZnPgo=';
+        };
+        
+        // Auto-close tab after successful scan (optional)
+        let autoCloseTimer;
+        socket.on('itemScanned', (data) => {
+            if (data.isPenalty || data.isRequired) {
+                autoCloseTimer = setTimeout(() => {
+                    if (confirm('¿Quieres cerrar esta pestaña y volver al juego principal?')) {
+                        window.close();
+                    }
+                }, 3000);
+            }
+        });
+        
+        // Cancel auto-close if user interacts
+        document.addEventListener('click', () => {
+            if (autoCloseTimer) {
+                clearTimeout(autoCloseTimer);
+                autoCloseTimer = null;
+            }
+        });
+        
+        // Sync with main tab function
+        function syncWithMainTab() {
+            const gameState = getGameState();
+            if (gameState) {
+                // Force update in main tab
+                setGameState(gameState);
+            }
+        }
+    </script>
+</body>
+</html>
