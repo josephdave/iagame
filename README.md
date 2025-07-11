@@ -76,14 +76,14 @@ Para desarrollo con recarga automática:
 npm run dev
 ```
 
-El servidor se ejecutará en `http://localhost:3000`
+El servidor se ejecutará en `http://localhost:3001`
 
 ### 2. Acceder a las interfaces
 
-- **Jugadores**: `http://localhost:3000/` - Página principal para registro y juego
-- **Dashboard**: `http://localhost:3000/dashboard` - Panel de monitoreo en tiempo real
-- **Controles**: `http://localhost:3000/controles` - Panel de administración del juego
-- **Escaneo QR**: `http://localhost:3000/scan/{QR_ID}` - Página de escaneo de códigos
+- **Jugadores**: `http://localhost:3001/` - Página principal para registro y juego
+- **Dashboard**: `http://localhost:3001/dashboard` - Panel de monitoreo en tiempo real
+- **Controles**: `http://localhost:3001/controles` - Panel de administración del juego
+- **Escaneo QR**: `http://localhost:3001/scan/{QR_ID}` - Página de escaneo de códigos
 
 ### 3. Flujo del juego
 
