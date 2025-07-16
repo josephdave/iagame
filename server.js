@@ -760,7 +760,15 @@ app.get('/api/generate-qr/:qrId', async (req, res) => {
   const url = `${req.protocol}://${req.get('host')}/scan/${qrId}`;
   
   try {
-    const qrCode = await QRCode.toDataURL(url);
+    const qrCode = await QRCode.toDataURL(url, {
+      width: 400,
+      height: 400,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
     res.json({ qrCode, url });
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate QR code' });

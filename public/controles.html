@@ -214,28 +214,31 @@
         
         .qr-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
             margin-top: 20px;
         }
         
         .qr-item {
             text-align: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            break-inside: avoid;
+            page-break-inside: avoid;
         }
         
         .qr-code {
-            width: 120px;
-            height: 120px;
-            margin: 10px auto;
+            width: 250px;
+            height: 250px;
+            margin: 15px auto;
             background: white;
-            border-radius: 10px;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 10px;
         }
         
         .qr-code img {
@@ -266,6 +269,51 @@
             color: #f44336;
         }
         
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            
+            .navigation, .control-section, .players-section, .qr-controls, 
+            .success-message, .error-message {
+                display: none !important;
+            }
+            
+            .qr-generator {
+                background: white !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+            
+            .qr-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 30px !important;
+                margin: 0 !important;
+            }
+            
+            .qr-item {
+                background: white !important;
+                border: 2px solid black !important;
+                padding: 20px !important;
+                margin-bottom: 30px !important;
+                border-radius: 10px !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .qr-code {
+                width: 300px !important;
+                height: 300px !important;
+                background: white !important;
+                border: 1px solid black !important;
+            }
+            
+            h1, h2, h3 {
+                color: black !important;
+            }
+        }
+        
         @media (max-width: 768px) {
             .control-group {
                 flex-direction: column;
@@ -283,6 +331,15 @@
             .nav-button {
                 display: block;
                 margin: 5px 0;
+            }
+            
+            .qr-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .qr-code {
+                width: 200px !important;
+                height: 200px !important;
             }
         }
     </style>
