@@ -733,6 +733,28 @@ app.post('/api/clear-players', (req, res) => {
   }
 });
 
+app.get('/api/qr-codes-config', (req, res) => {
+  try {
+    const qrCodes = gameConfig.game.qr_codes.map((qrId, index) => {
+      // Get corresponding item from items config
+      const allItems = [...itemsConfig.items, ...itemsConfig.penalty_items];
+      const item = allItems[index];
+      
+      return {
+        id: qrId,
+        name: item ? item.nombre : `Item ${index + 1}`,
+        image: item ? item.imagen : null,
+        index: index
+      };
+    });
+    
+    res.json({ qrCodes });
+  } catch (error) {
+    console.error('Error getting QR codes config:', error);
+    res.status(500).json({ error: 'Failed to get QR codes configuration' });
+  }
+});
+
 app.get('/api/generate-qr/:qrId', async (req, res) => {
   const qrId = req.params.qrId;
   const url = `${req.protocol}://${req.get('host')}/scan/${qrId}`;

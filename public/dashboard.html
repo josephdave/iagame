@@ -221,8 +221,8 @@
         }
         
         .qr-code {
-            width: 150px;
-            height: 150px;
+            width: 300px;
+            height: 300px;
             margin: 10px auto;
             background: white;
             border-radius: 10px;
@@ -271,6 +271,14 @@
             <div id="time-remaining" class="time-remaining hidden"></div>
         </div>
         
+        <div id="player-registration-qr" class="qr-generator hidden">
+            <h3>📱 Únete al Juego</h3>
+            <p>Escanea el código QR para registrarte como jugador</p>
+            <div class="qr-code">
+                <img  width="350" height="350" id="registration-qr-image" src="" alt="QR Code para registro">
+            </div>
+        </div>
+        
         <div id="winner-announcement" class="winner-announcement hidden"></div>
         
         <div id="teams-container" class="teams-grid hidden"></div>
@@ -308,25 +316,39 @@
             const statusElement = document.getElementById('game-status-text');
             const timeElement = document.getElementById('time-remaining');
             const countdownElement = document.getElementById('countdown-display');
+            const registrationQR = document.getElementById('player-registration-qr');
             
             switch(gameState.status) {
                 case 'waiting':
                     statusElement.textContent = 'Estado: Esperando próximo juego';
                     timeElement.classList.add('hidden');
                     countdownElement.classList.add('hidden');
+                    registrationQR.classList.remove('hidden');
+                    generateRegistrationQR();
                     break;
                 case 'active':
                     statusElement.textContent = 'Estado: Juego en progreso';
                     timeElement.classList.remove('hidden');
                     timeElement.textContent = `Tiempo restante: ${formatTime(gameState.timeRemaining)}`;
                     countdownElement.classList.add('hidden');
+                    registrationQR.classList.add('hidden');
                     break;
                 case 'finished':
                     statusElement.textContent = 'Estado: Juego terminado';
                     timeElement.classList.add('hidden');
                     countdownElement.classList.add('hidden');
+                    registrationQR.classList.add('hidden');
                     break;
             }
+        }
+        
+        function generateRegistrationQR() {
+            const baseUrl = window.location.origin;
+            const registrationUrl = `${baseUrl}/`;
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(registrationUrl)}`;
+            
+            const qrImage = document.getElementById('registration-qr-image');
+            qrImage.src = qrApiUrl;
         }
         
         function updateCountdown(targetTime) {

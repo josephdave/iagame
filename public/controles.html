@@ -573,25 +573,35 @@
         }
         
         function generateQRCodes() {
-            const qrCodes = [
-                'QR001', 'QR002', 'QR003', 'QR004', 'QR005',
-                'QR006', 'QR007', 'QR008', 'QR009', 'QR010',
-                'QR011', 'QR012', 'QR013', 'QR014', 'QR015'
-            ];
+            // Load QR codes from server endpoint
+            fetch('/api/qr-codes-config')
+                .then(response => response.json())
+                .then(data => {
+                    generateQRGrid(data.qrCodes);
+                })
+                .catch(error => {
+                    console.error('Error loading QR codes config:', error);
+                    showError('Error al cargar la configuración de códigos QR');
+                });
+        }
+        
+        function generateQRGrid(qrCodes) {
             
             const qrGrid = document.getElementById('qr-grid');
             qrGrid.innerHTML = '';
             
-            qrCodes.forEach(qrId => {
-                fetch(`/api/generate-qr/${qrId}`)
+            qrCodes.forEach(qrData => {
+                fetch(`/api/generate-qr/${qrData.id}`)
                     .then(response => response.json())
                     .then(data => {
                         const qrItem = document.createElement('div');
                         qrItem.className = 'qr-item';
                         qrItem.innerHTML = `
-                            <h4>${qrId}</h4>
+                            <h4>${qrData.id}</h4>
+                            <p style="margin: 5px 0; font-weight: bold; color: #4caf50;">${qrData.name}</p>
+                            ${qrData.image ? `<img src="${qrData.image}" alt="${qrData.name}" style="width: 40px; height: 40px; margin: 5px 0; border-radius: 5px;">` : ''}
                             <div class="qr-code">
-                                <img src="${data.qrCode}" alt="QR Code ${qrId}">
+                                <img src="${data.qrCode}" alt="QR Code ${qrData.id}">
                             </div>
                             <small>${data.url}</small>
                             <br>
